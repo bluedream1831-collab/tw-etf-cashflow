@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ETF 現金流試算 (v24 含00919/00918)</title>
-    <!-- Vue.js 3 -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <title>ETF 現金流試算 (v26 修正版)</title>
+    
+    <!-- 1. 更換為更穩定的 Vue CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
+        /* 2. 防止原始碼外洩的樣式 */
+        [v-cloak] { display: none !important; }
+
         :root {
             --primary-color: #198754;
             --highlight-bg: #fffde7;
@@ -26,6 +31,7 @@
             color: #333;
             font-size: 14px;
             padding-bottom: 60px; 
+            padding-top: env(safe-area-inset-top);
         }
 
         .container-fluid { padding-left: 0; padding-right: 0; max-width: 800px; margin: 0 auto; }
@@ -37,7 +43,6 @@
             margin-bottom: 0; 
             border-bottom: 1px solid #ddd;
             position: sticky; top: 0; z-index: 900;
-            padding-top: env(safe-area-inset-top); /* 避開瀏海 */
         }
 
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 0 5px; }
@@ -75,8 +80,14 @@
             padding: 6px 4px;
             vertical-align: middle;
             border-bottom: 1px solid #eee;
-            height: 46px;
+            height: 48px;
         }
+
+        /* 刪除按鈕 (垃圾桶) */
+        .delete-btn {
+            font-size: 11px; color: #dc3545; opacity: 0.3; cursor: pointer; margin-left: 6px; padding: 2px;
+        }
+        .delete-btn:hover { opacity: 1; transform: scale(1.1); }
 
         /* 表格底部合計列 (Footer) */
         .table-footer-row td {
@@ -127,7 +138,7 @@
         .amount-cell { text-align: right; padding-right: 8px !important; }
         .amount-text { font-size: 15px; font-weight: 800; color: var(--primary-color); letter-spacing: 0.5px; }
 
-        /* --- 底部懸浮合計 (手機版方便看) --- */
+        /* --- 底部懸浮合計 --- */
         .footer-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: rgba(33, 37, 41, 0.98); 
@@ -150,18 +161,16 @@
             .container-fluid { max-width: 100%; }
             .custom-table th, .custom-table td { border: 1px solid #000; }
             .input-enhanced { border: none; background: transparent; text-align: right; box-shadow: none; padding: 0; }
-            
-            /* 列印時，金額文字改為純黑，避免印表機印出淺灰色 */
             .amount-text { color: #000 !important; }
-            
-            /* 列印時顯示表格底部的合計 */
             .table-footer-row td { background-color: #fff !important; border-top: 2px solid #000 !important; color: #000 !important;}
+            .delete-btn { display: none; }
         }
     </style>
 </head>
 <body>
 
-<div id="app">
+<!-- 加入 v-cloak 屬性 -->
+<div id="app" v-cloak>
     
     <!-- 頂部操作區 -->
     <div class="top-bar no-print">
@@ -170,7 +179,7 @@
             <div class="header-row">
                 <div class="d-flex align-items-center">
                     <i class="fas fa-coins text-success me-2"></i>
-                    <span class="fw-bold text-dark fs-6">ETF 現金流 v24</span>
+                    <span class="fw-bold text-dark fs-6">ETF 現金流</span>
                 </div>
                 
                 <div class="btn-group">
@@ -182,7 +191,8 @@
                     </button>
                     <!-- 下拉選單 -->
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
-                        <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="fas fa-book me-2 text-primary"></i>操作說明</a></li>
+                        <li><a class="dropdown-item py-2 fw-bold text-primary" href="#" data-bs-toggle="modal" data-bs-target="#addEtfModal"><i class="fas fa-plus-circle me-2"></i>新增 ETF</a></li>
+                        <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="fas fa-book me-2"></i>操作說明</a></li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li><a class="dropdown-item py-2" href="#" @click.prevent="backupDataJSON"><i class="fas fa-file-export me-2"></i>匯出備份 (JSON)</a></li>
                         <li><a class="dropdown-item py-2" href="#" @click.prevent="triggerImport"><i class="fas fa-file-import me-2"></i>匯入備份 (JSON)</a></li>
@@ -191,7 +201,7 @@
                         <li><a class="dropdown-item py-2" href="#" @click.prevent="printPage"><i class="fas fa-print me-2"></i>列印 / PDF</a></li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li><a class="dropdown-item py-2 text-danger" href="#" @click.prevent="clearMonthDPS"><i class="fas fa-eraser me-2"></i>清除本月金額</a></li>
-                        <li><a class="dropdown-item py-2 text-danger" href="#" @click.prevent="clearAnnualDPS"><i class="fas fa-trash-alt me-2"></i>清除整年金額</a></li>
+                        <li><a class="dropdown-item py-2 text-danger" href="#" @click.prevent="resetToDefault"><i class="fas fa-undo me-2"></i>重置所有清單</a></li>
                     </ul>
                 </div>
             </div>
@@ -233,6 +243,8 @@
                                 <span class="etf-code">{{ etf.id }}</span>
                                 <span v-if="etf.freq==='M'" class="badge-pill badge-m">月</span>
                                 <span v-else class="badge-pill badge-q">季</span>
+                                <!-- 刪除按鈕 -->
+                                <i class="fas fa-trash-alt delete-btn no-print" @click="removeEtf(etf.id)" title="刪除此列"></i>
                             </div>
                             <div class="etf-name">{{ etf.name }}</div>
                         </div>
@@ -266,7 +278,7 @@
                     </td>
                 </tr>
             </tbody>
-            <!-- 表格底部合計 (列印時會顯示，網頁版顯示在最下方) -->
+            <!-- 表格底部合計 -->
             <tfoot>
                 <tr class="table-footer-row">
                     <td colspan="3" class="text-end fw-bold">本月合計 Total</td>
@@ -278,7 +290,7 @@
         </table>
     </div>
 
-    <!-- 底部合計 (僅手機螢幕顯示，列印時隱藏) -->
+    <!-- 底部合計 (手機懸浮) -->
     <div class="footer-bar no-print">
         <div class="d-flex align-items-center">
             <span class="badge bg-light text-dark me-2">{{ currentMonth }}月</span>
@@ -321,6 +333,48 @@
         </div>
     </div>
 
+    <!-- 新增 ETF Modal -->
+    <div class="modal fade" id="addEtfModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-success bg-opacity-10 py-2">
+                    <h6 class="modal-title fw-bold text-success"><i class="fas fa-plus-circle me-2"></i>新增 ETF</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="addEtf">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">代號 (如 00878)</label>
+                            <input type="text" class="form-control" v-model="newEtf.id" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">名稱 (如 國泰永續)</label>
+                            <input type="text" class="form-control" v-model="newEtf.name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">配息頻率</label>
+                            <select class="form-select" v-model="newEtf.freq">
+                                <option value="M">月配 (Monthly)</option>
+                                <option value="Q">季配 (Quarterly)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" v-if="newEtf.freq === 'Q'">
+                            <label class="form-label small fw-bold">配發月份 (入帳日)</label>
+                            <select class="form-select" v-model="newEtf.group">
+                                <option value="1">1, 4, 7, 10 月</option>
+                                <option value="2">2, 5, 8, 11 月</option>
+                                <option value="3">3, 6, 9, 12 月</option>
+                            </select>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success fw-bold">新增加入</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 說明書 Modal -->
     <div class="modal fade" id="helpModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -331,11 +385,11 @@
                 </div>
                 <div class="modal-body small">
                     <ul class="ps-3 mb-0">
-                        <li class="mb-2"><strong>記憶月份</strong>：系統會自動記住您最後瀏覽的月份。</li>
-                        <li class="mb-1"><strong>黃底</strong>：代表本月有領息的季配 ETF。</li>
-                        <li class="mb-1"><strong>股數</strong>：連動所有月份，改一次全部更新。</li>
-                        <li class="mb-1"><strong>配息</strong>：每月獨立輸入。</li>
-                        <li><strong>V24 更新</strong>：加入 00919、00918，並優化列印功能。</li>
+                        <li class="mb-2 text-danger fw-bold">注意：請務必填寫「配發月 (入帳日)」，並非除息月。</li>
+                        <li class="mb-2"><strong>自訂清單</strong>：點擊「功能 > 新增 ETF」可加入自己的標的。</li>
+                        <li class="mb-2"><strong>預設股數</strong>：系統預設所有 ETF 股數皆為 0 股。</li>
+                        <li class="mb-2"><strong>黃底提示</strong>：代表本月有領息的季配 ETF。</li>
+                        <li class="mb-1"><strong>記憶功能</strong>：會自動記住您的股數與配息設定。</li>
                     </ul>
                 </div>
             </div>
@@ -352,7 +406,7 @@
 
     createApp({
         setup() {
-            // --- 核心邏輯：記憶月份 ---
+            // 記憶月份
             const savedMonth = localStorage.getItem('etf_user_last_month');
             const currentMonth = ref(savedMonth ? parseInt(savedMonth) : new Date().getMonth() + 1);
 
@@ -361,9 +415,16 @@
             });
 
             const fileInput = ref(null);
+            const sharesData = ref({}); 
+            const dpsData = ref({});
+            const etfList = ref([]);
 
-            // ETF 清單設定 (v24: 新增 00919, 00918)
-            const etfConfig = [
+            const newEtf = reactive({
+                id: '', name: '', freq: 'M', group: '1'
+            });
+
+            // 內建預設清單
+            const defaultEtfs = [
                 { id: '0056', name: '元大高股息', freq: 'Q', months: [2,5,8,11] },
                 { id: '00720B', name: '元大投債', freq: 'Q', months: [2,5,8,11] },
                 { id: '00878', name: '國泰永續', freq: 'Q', months: [3,6,9,12] },
@@ -371,14 +432,10 @@
                 { id: '00891', name: '中信關鍵', freq: 'Q', months: [3,6,9,12] },
                 { id: '00713', name: '高息低波', freq: 'Q', months: [1,4,7,10] },
                 { id: '00915', name: '凱基高息', freq: 'Q', months: [1,4,7,10] },
-                
-                // V24 新增
                 { id: '00918', name: '大華優利高填息', freq: 'Q', months: [1,4,7,10] },
                 { id: '00919', name: '群益台灣精選', freq: 'Q', months: [1,4,7,10] },
-
+                
                 { id: '00900', name: '富邦特選', freq: 'M', months: [] },
-                { id: '009805', name: '新光美國電力', freq: 'M', months: [] },
-                { id: '00922', name: '國泰領袖50', freq: 'M', months: [] },
                 { id: '00740B', name: '全球投債', freq: 'M', months: [] },
                 { id: '00929', name: '復華台灣科技', freq: 'M', months: [] },
                 { id: '00934', name: '中信成長高股', freq: 'M', months: [] },
@@ -390,50 +447,31 @@
                 { id: '00772B', name: '中信高評級', freq: 'M', months: [] },
             ];
 
-            // 預設股數
-            const defaultShares = {
-                '0056': 6000, 
-                '00713': 3038, 
-                '00720B': 3000, 
-                '00740B': 1000,
-                '00772B': 6369, 
-                '00850': 1000, 
-                '00878': 7000, 
-                '00891': 12000, 
-                '00915': 6000,
-                '00918': 3000, // 新增
-                '00919': 5000, // 新增
-                '00929': 3000, 
-                '00934': 1000, 
-                '00936': 6000,
-                '00939': 5000, 
-                '00940': 3000, 
-                '00950B': 10000, 
-                '00959B': 5000,
-                '00900': 1000, 
-                '009805': 1000, 
-                '00922': 2000
-            };
-
-            const sharesData = ref({}); 
-            const dpsData = ref({});
-
+            // 初始化配息資料結構
             for(let m=1; m<=12; m++) dpsData.value[m] = {};
 
             const loadData = () => {
-                // Key: v23 -> v24 升級 (若要區隔資料庫可改 key，這邊暫用 v23 格式兼容)
-                // 為了方便新使用者測試新代碼，我們稍微修改邏輯，若無資料則載入新的預設值
-                const savedShares = localStorage.getItem('etf_shares_v23');
-                if(savedShares) {
-                    const parsed = JSON.parse(savedShares);
-                    // 確保舊資料有新欄位 (merge default)
-                    sharesData.value = { ...defaultShares, ...parsed };
+                // 1. 載入 ETF 清單
+                const savedConfig = localStorage.getItem('etf_config_v26');
+                if (savedConfig) {
+                    etfList.value = JSON.parse(savedConfig);
                 } else {
-                    sharesData.value = { ...defaultShares }; 
+                    etfList.value = JSON.parse(JSON.stringify(defaultEtfs)); 
+                    saveEtfConfig();
+                }
+
+                // 2. 載入股數
+                const savedShares = localStorage.getItem('etf_shares_v26');
+                if(savedShares) {
+                    sharesData.value = JSON.parse(savedShares);
+                } else {
+                    // 若無紀錄，執行預設邏輯
+                    initDefaultShares();
                     saveShares();
                 }
 
-                const savedDps = localStorage.getItem('etf_dps_v23');
+                // 3. 載入配息
+                const savedDps = localStorage.getItem('etf_dps_v26');
                 if(savedDps) {
                     dpsData.value = JSON.parse(savedDps);
                 } else {
@@ -441,12 +479,72 @@
                 }
             };
 
+            // 核心邏輯：預設股數 (全部 = 0)
+            const initDefaultShares = () => {
+                const tempShares = {};
+                etfList.value.forEach(etf => {
+                    tempShares[etf.id] = 0; // 全部設為 0
+                });
+                sharesData.value = tempShares;
+            };
+
+            const saveEtfConfig = () => {
+                localStorage.setItem('etf_config_v26', JSON.stringify(etfList.value));
+            };
+
             const saveShares = () => {
-                localStorage.setItem('etf_shares_v23', JSON.stringify(sharesData.value));
+                localStorage.setItem('etf_shares_v26', JSON.stringify(sharesData.value));
             };
 
             const saveDps = () => {
-                localStorage.setItem('etf_dps_v23', JSON.stringify(dpsData.value));
+                localStorage.setItem('etf_dps_v26', JSON.stringify(dpsData.value));
+            };
+
+            const addEtf = () => {
+                if(etfList.value.some(e => e.id === newEtf.id)) {
+                    alert('此代號已存在清單中');
+                    return;
+                }
+
+                let months = [];
+                if(newEtf.freq === 'Q') {
+                    if(newEtf.group === '1') months = [1,4,7,10];
+                    if(newEtf.group === '2') months = [2,5,8,11];
+                    if(newEtf.group === '3') months = [3,6,9,12];
+                }
+
+                etfList.value.push({
+                    id: newEtf.id,
+                    name: newEtf.name,
+                    freq: newEtf.freq,
+                    months: months
+                });
+
+                // 新增時：預設股數為 0
+                sharesData.value[newEtf.id] = 0;
+
+                saveEtfConfig();
+                saveShares();
+
+                alert(`已新增 ${newEtf.name} (${newEtf.id})`);
+                newEtf.id = ''; newEtf.name = ''; newEtf.freq = 'M';
+            };
+
+            const removeEtf = (id) => {
+                if(confirm(`確定要移除 ${id} 嗎？`)) {
+                    etfList.value = etfList.value.filter(e => e.id !== id);
+                    saveEtfConfig();
+                }
+            };
+
+            const resetToDefault = () => {
+                if(confirm("確定要重置所有清單嗎？\n\n1. 恢復內建清單\n2. 所有股數歸零")) {
+                    etfList.value = JSON.parse(JSON.stringify(defaultEtfs));
+                    initDefaultShares(); // 強制執行預設股數 0 邏輯
+                    saveEtfConfig();
+                    saveShares();
+                    alert("已重置完成");
+                }
             };
 
             const getMonthDps = (m) => {
@@ -459,7 +557,7 @@
             };
 
             const filteredList = computed(() => {
-                let list = etfConfig.filter(etf => {
+                let list = etfList.value.filter(etf => {
                     if(etf.freq === 'M') return true;
                     return etf.months.includes(currentMonth.value);
                 });
@@ -486,7 +584,7 @@
                 const summary = [];
                 for (let m = 1; m <= 12; m++) {
                     let monthTotal = 0;
-                    etfConfig.forEach(etf => {
+                    etfList.value.forEach(etf => {
                         const isPayMonth = (etf.freq === 'M') || etf.months.includes(m);
                         if(isPayMonth) {
                             const s = sharesData.value[etf.id] || 0;
@@ -534,10 +632,11 @@
 
             const backupDataJSON = () => {
                 const backup = {
+                    config: etfList.value,
                     shares: sharesData.value,
                     dps: dpsData.value,
                     timestamp: new Date().toISOString(),
-                    version: 'v24'
+                    version: 'v26'
                 };
                 const jsonString = JSON.stringify(backup, null, 2);
                 const blob = new Blob([jsonString], { type: "application/json" });
@@ -563,8 +662,10 @@
                         const data = JSON.parse(e.target.result);
                         if (data.shares && data.dps) {
                             if(confirm("確定要匯入此備份檔嗎？\n\n目前的資料將會被覆蓋。")) {
+                                if(data.config) etfList.value = data.config;
                                 sharesData.value = data.shares;
                                 dpsData.value = data.dps;
+                                saveEtfConfig();
                                 saveShares();
                                 saveDps();
                                 alert("匯入成功！");
@@ -579,19 +680,9 @@
             };
 
             const clearMonthDPS = () => {
-                if(confirm(`確定要清除「${currentMonth.value}月」的所有配息金額嗎？\n\n(股數會保留)`)) {
+                if(confirm(`確定要清除「${currentMonth.value}月」的所有配息金額嗎？`)) {
                     dpsData.value[currentMonth.value] = {};
                     saveDps();
-                }
-            };
-
-            const clearAnnualDPS = () => {
-                if(confirm("確定要清除「整年度 (1~12月)」所有的配息金額嗎？\n\n(股數會保留)")) {
-                    for(let m=1; m<=12; m++) {
-                        dpsData.value[m] = {};
-                    }
-                    saveDps();
-                    alert("已清除配息金額");
                 }
             };
 
@@ -604,8 +695,9 @@
                 filteredList, isHighlight, saveShares, saveDps,
                 calculateAmount, totalAmount,
                 yearlySummary, yearlyTotal,
-                exportCSV, printPage, clearMonthDPS, clearAnnualDPS,
-                backupDataJSON, triggerImport, handleFileImport, fileInput
+                exportCSV, printPage, clearMonthDPS,
+                backupDataJSON, triggerImport, handleFileImport, fileInput,
+                newEtf, addEtf, removeEtf, resetToDefault
             };
         }
     }).mount('#app');
