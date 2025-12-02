@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <!-- 社群分享優化 (OG Tags) -->
-    <meta property="og:title" content="ETF 現金流試算神器 (v30) | 存股族必備">
-    <meta property="og:description" content="【隱私承諾：資料不傳雲端】自動試算二代健保、年化殖利率、每月現金流。內建備份功能，換手機也能用！">
+    <meta property="og:title" content="ETF 現金流試算神器 (v33) | 存股族必備">
+    <meta property="og:description" content="【內建安裝教學】自動試算二代健保、年化殖利率、每月現金流。支援桌面捷徑，像 App 一樣好用！">
     <meta property="og:type" content="website">
     <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/2910/2910280.png">
 
@@ -16,7 +16,7 @@
     <meta name="theme-color" content="#198754">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3310/3310624.png">
     
-    <title>ETF 現金流試算 (v30 備份加強版)</title>
+    <title>ETF 現金流試算 (v33 安裝教學版)</title>
     
     <!-- Vue 3 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
@@ -36,6 +36,7 @@
             --bg-color: #f8f9fa;
             --input-bg: #f8f9fa; 
             --input-border: #ced4da; 
+            --top-bar-height: 112px;
         }
 
         body { 
@@ -49,19 +50,19 @@
 
         .container-fluid { padding-left: 0; padding-right: 0; max-width: 800px; margin: 0 auto; }
 
-        /* --- 頂部導航 --- */
+        /* --- 頂部導航 (Sticky) --- */
         .top-bar {
             background: white; 
-            padding: 8px 10px; 
-            border-bottom: 1px solid #eee;
-            position: sticky; top: 0; z-index: 900;
+            padding: 8px 10px 0 10px; 
+            border-bottom: 1px solid #ccc;
+            position: sticky; top: 0; z-index: 1020;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
-        .header-row { display: flex; justify-content: space-between; align-items: center; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
 
-        /* ★ V30 新增：資料工具列 (明顯的按鈕區) */
         .tools-bar {
-            display: flex; gap: 5px; padding: 5px 5px 0 5px; background: #fff;
+            display: flex; gap: 5px; padding: 0 0 8px 0; background: #fff;
         }
         .btn-tool {
             flex: 1; border: 1px solid #dee2e6; background: #fff; color: #555;
@@ -74,7 +75,6 @@
         .btn-tool-import { color: #6610f2; border-color: #e0cffc; background: #fbf8ff; }
         .btn-tool-chart { color: #d63384; border-color: #f7d6e6; background: #fff8fb; }
 
-        /* 分享按鈕 */
         .btn-share {
             background: #0d6efd; color: white; border: none; border-radius: 20px;
             padding: 2px 12px; font-size: 12px; font-weight: bold;
@@ -82,14 +82,19 @@
         }
         .btn-share:active { transform: scale(0.9); }
 
-        /* 月份按鈕 */
-        .month-bar { display: flex; gap: 2px; justify-content: center; overflow-x: auto; padding: 5px; background: white; border-bottom: 1px solid #ddd;}
+        .month-bar { 
+            display: flex; gap: 2px; justify-content: center; overflow-x: auto; 
+            padding-bottom: 8px; background: white;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+        }
+        .month-bar::-webkit-scrollbar { display: none; }
+
         .month-btn {
             flex: 1; min-width: 25px; height: 32px;
             border-radius: 4px; font-weight: bold; border: 1px solid #eee;
             background: #fff; color: #666; font-size: 13px;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.2s;
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
         }
         .month-btn.active {
             background-color: var(--primary-color); color: white; border-color: var(--primary-color);
@@ -100,11 +105,10 @@
         .custom-table th {
             background-color: #e9ecef; color: #495057; padding: 8px 4px;
             font-size: 13px; text-align: center; border-bottom: 2px solid #ccc;
-            white-space: nowrap; position: sticky; top: 0; /* Note: sticky top might need adjustment due to extra bars */
+            white-space: nowrap; 
+            position: sticky; top: var(--top-bar-height); z-index: 1010;
         }
-        /* 因為上方多了工具列，表格標題黏貼位置要調整，或直接取消 sticky 以免擋住 */
-        .custom-table th { position: static; } 
-
+        
         .custom-table td { padding: 8px 4px; vertical-align: top; border-bottom: 1px solid #eee; }
 
         .delete-btn { font-size: 11px; color: #dc3545; opacity: 0.3; cursor: pointer; margin-left: 6px; }
@@ -140,7 +144,7 @@
         .footer-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: rgba(33, 37, 41, 0.98); color: #fff;
-            padding: 10px 15px; z-index: 1000;
+            padding: 10px 15px; z-index: 1050;
             display: flex; justify-content: space-between; align-items: center;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
             padding-bottom: env(safe-area-inset-bottom);
@@ -152,12 +156,18 @@
             color: #999; font-size: 11px; line-height: 1.5;
         }
 
+        .help-section { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #eee; }
+        .help-section:last-child { border-bottom: none; }
+        .help-title { font-weight: bold; color: #333; margin-bottom: 8px; display: flex; align-items: center; }
+        .help-title i { width: 24px; text-align: center; margin-right: 5px; }
+
         .print-only-header { display: none; }
 
         @media print {
             .no-print, .month-bar, .footer-bar, .top-bar, .tools-bar, .privacy-footer { display: none !important; }
             .print-only-header { display: block; text-align: center; margin-bottom: 20px; font-size: 20px; font-weight: bold;}
             .custom-table th, .custom-table td { border: 1px solid #000; }
+            .custom-table th { position: static; }
             .input-enhanced, .input-mini { border: none; background: transparent; text-align: right; padding: 0; }
             .amount-text { color: #000 !important; }
             .delete-btn { display: none; }
@@ -168,9 +178,8 @@
 
 <div id="app" v-cloak>
     
-    <div class="top-bar no-print">
+    <div class="top-bar no-print" ref="topBar">
         <div class="container-fluid">
-            <!-- 第一行：標題與主要功能 -->
             <div class="header-row">
                 <div class="d-flex align-items-center">
                     <i class="fas fa-chart-line text-success me-2"></i>
@@ -187,7 +196,7 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
                         <li><a class="dropdown-item py-2 fw-bold text-primary" href="#" data-bs-toggle="modal" data-bs-target="#addEtfModal"><i class="fas fa-plus-circle me-2"></i>新增 ETF</a></li>
-                        <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="fas fa-book me-2"></i>使用教學</a></li>
+                        <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="fas fa-book me-2"></i>操作說明</a></li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li><a class="dropdown-item py-2" href="#" @click.prevent="exportCSV"><i class="fas fa-file-csv me-2"></i>匯出 Excel</a></li>
                         <li><a class="dropdown-item py-2" href="#" @click.prevent="printPage"><i class="fas fa-print me-2"></i>列印 / PDF</a></li>
@@ -197,7 +206,6 @@
                 </div>
             </div>
 
-            <!-- ★ V30 新增：明顯的資料工具列 -->
             <div class="tools-bar">
                 <button class="btn-tool btn-tool-export" @click.prevent="backupDataJSON">
                     <i class="fas fa-file-export"></i> 匯出備份
@@ -209,16 +217,15 @@
                     <i class="fas fa-chart-pie"></i> 年度總覽
                 </button>
             </div>
-        </div>
-    </div>
 
-    <!-- 月份選擇列 -->
-    <div class="month-bar no-print">
-        <div v-for="m in 12" :key="m" 
-             class="month-btn" 
-             :class="{ active: currentMonth === m }"
-             @click="currentMonth = m">
-            {{ m }}
+            <div class="month-bar">
+                <div v-for="m in 12" :key="m" 
+                     class="month-btn" 
+                     :class="{ active: currentMonth === m }"
+                     @click="currentMonth = m">
+                    {{ m }}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -390,32 +397,73 @@
         </div>
     </div>
 
-    <!-- ★ V30 新增：教學說明包含匯入匯出 -->
+    <!-- ★ V33 更新：加入手機安裝教學 -->
     <div class="modal fade" id="helpModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-primary bg-opacity-10 py-2">
                     <h6 class="modal-title fw-bold text-primary">使用教學與聲明</h6>
+                    <span class="badge bg-success ms-2">v33.0</span>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body small">
-                    <!-- 備份教學區 -->
-                    <div class="mb-3">
-                        <h6 class="fw-bold text-dark border-bottom pb-1"><i class="fas fa-folder-open me-2 text-warning"></i>備份與換手機 (必讀)</h6>
-                        <p class="text-secondary mb-1">因隱私考量，本站資料<strong>只存在您的手機瀏覽器</strong>。若要換手機或清除瀏覽紀錄，請務必進行備份：</p>
-                        <ul class="ps-3 text-secondary">
-                            <li><strong>匯出</strong>：點擊上方【匯出備份】，系統會下載一個檔案 (JSON)，請妥善保存。</li>
-                            <li><strong>還原</strong>：在新手機點擊【匯入還原】，選擇該檔案即可恢復資料。</li>
+                    
+                    <!-- 安裝教學區 -->
+                    <div class="help-section">
+                        <div class="help-title"><i class="fas fa-mobile-screen-button text-success"></i>安裝到桌面 (推薦)</div>
+                        <p class="text-secondary mb-2">將本站加入主畫面，體驗全螢幕操作，就像原生 App！</p>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="p-2 border rounded bg-light">
+                                    <strong><i class="fab fa-apple"></i> iOS (Safari)</strong>
+                                    <ol class="ps-3 mb-0 text-secondary" style="font-size: 11px;">
+                                        <li>點擊下方「分享」<i class="fas fa-arrow-up-from-bracket"></i></li>
+                                        <li>滑動選擇「加入主畫面」</li>
+                                        <li>點擊右上角「加入」</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 border rounded bg-light">
+                                    <strong><i class="fab fa-android"></i> Android (Chrome)</strong>
+                                    <ol class="ps-3 mb-0 text-secondary" style="font-size: 11px;">
+                                        <li>點擊右上角選單 <i class="fas fa-ellipsis-vertical"></i></li>
+                                        <li>選「加入主畫面」或「安裝」</li>
+                                        <li>點擊「新增」</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="help-section">
+                        <div class="help-title"><i class="fas fa-keyboard text-primary"></i>基礎操作</div>
+                        <ul class="ps-3 text-secondary mb-0">
+                            <li><strong>股數/配息</strong>：填寫您持有的股數與每股配息。</li>
+                            <li><strong>月份切換</strong>：點擊上方 1~12 月，系統會記住每月的配息設定。</li>
                         </ul>
                     </div>
 
-                    <div class="mb-3">
-                        <h6 class="fw-bold text-dark border-bottom pb-1"><i class="fas fa-info-circle me-2 text-info"></i>功能說明</h6>
-                        <ul class="ps-3 mb-0">
-                            <li><strong>二代健保</strong>：單筆 &ge; 2 萬元，顯示 💊 並試算扣費。</li>
-                            <li><strong>殖利率</strong>：輸入「均價」後自動試算年化殖利率。</li>
-                            <li><strong>預設股數</strong>：所有 ETF 預設股數皆為 0。</li>
+                    <div class="help-section">
+                        <div class="help-title"><i class="fas fa-calculator text-warning"></i>進階試算</div>
+                        <ul class="ps-3 text-secondary mb-0">
+                            <li><strong>二代健保</strong>：單筆 &ge; 20,000 元，扣 2.11% 補充保費，顯示 💊 圖示。</li>
+                            <li><strong>年化殖利率</strong>：輸入「均價」後自動試算。</li>
                         </ul>
+                    </div>
+
+                    <div class="help-section">
+                        <div class="help-title"><i class="fas fa-folder-open text-info"></i>資料安全</div>
+                        <p class="text-secondary mb-1">本站採用<strong>離線運算</strong>，資料僅存在手機中。換手機請務必：</p>
+                        <ul class="ps-3 text-secondary mb-0">
+                            <li><strong>匯出備份</strong>：下載 JSON 檔案。</li>
+                            <li><strong>匯入還原</strong>：上傳檔案恢復資料。</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-light border mb-0 mt-2 text-center" style="font-size: 11px;">
+                        <strong>免責聲明</strong><br>
+                        試算結果僅供參考，實際配息金額以投信公告為準。
                     </div>
                 </div>
             </div>
@@ -468,19 +516,27 @@
             for(let m=1; m<=12; m++) dpsData.value[m] = {};
 
             const loadData = () => {
-                const savedConfig = localStorage.getItem('etf_config_v30');
+                const tryLoad = (keyPrefix) => localStorage.getItem(keyPrefix);
+
+                // Config
+                let savedConfig = tryLoad('etf_config_v33') || tryLoad('etf_config_v32') || tryLoad('etf_config_v31') || tryLoad('etf_config_v30');
                 if (savedConfig) etfList.value = JSON.parse(savedConfig);
-                else { etfList.value = JSON.parse(JSON.stringify(defaultEtfs)); saveEtfConfig(); }
+                else { etfList.value = JSON.parse(JSON.stringify(defaultEtfs)); }
 
-                const savedShares = localStorage.getItem('etf_shares_v30');
+                // Shares
+                let savedShares = tryLoad('etf_shares_v33') || tryLoad('etf_shares_v32') || tryLoad('etf_shares_v31') || tryLoad('etf_shares_v30');
                 if(savedShares) sharesData.value = JSON.parse(savedShares);
-                else { initDefaultShares(); saveShares(); }
+                else { initDefaultShares(); }
 
-                const savedCosts = localStorage.getItem('etf_costs_v30');
+                // Costs
+                let savedCosts = tryLoad('etf_costs_v33') || tryLoad('etf_costs_v32') || tryLoad('etf_costs_v31') || tryLoad('etf_costs_v30');
                 if(savedCosts) costData.value = JSON.parse(savedCosts);
                 
-                const savedDps = localStorage.getItem('etf_dps_v30');
+                // DPS
+                let savedDps = tryLoad('etf_dps_v33') || tryLoad('etf_dps_v32') || tryLoad('etf_dps_v31') || tryLoad('etf_dps_v30');
                 if(savedDps) dpsData.value = JSON.parse(savedDps);
+
+                saveEtfConfig(); saveShares(); saveCosts(); saveDps();
             };
 
             const initDefaultShares = () => {
@@ -489,10 +545,10 @@
                 sharesData.value = temp;
             };
 
-            const saveEtfConfig = () => localStorage.setItem('etf_config_v30', JSON.stringify(etfList.value));
-            const saveShares = () => localStorage.setItem('etf_shares_v30', JSON.stringify(sharesData.value));
-            const saveCosts = () => localStorage.setItem('etf_costs_v30', JSON.stringify(costData.value));
-            const saveDps = () => localStorage.setItem('etf_dps_v30', JSON.stringify(dpsData.value));
+            const saveEtfConfig = () => localStorage.setItem('etf_config_v33', JSON.stringify(etfList.value));
+            const saveShares = () => localStorage.setItem('etf_shares_v33', JSON.stringify(sharesData.value));
+            const saveCosts = () => localStorage.setItem('etf_costs_v33', JSON.stringify(costData.value));
+            const saveDps = () => localStorage.setItem('etf_dps_v33', JSON.stringify(dpsData.value));
 
             const getMonthDps = (m) => {
                 if(!dpsData.value[m]) dpsData.value[m] = {};
@@ -594,18 +650,12 @@
                 };
 
                 if (navigator.share) {
-                    try {
-                        await navigator.share(shareData);
-                    } catch (err) {
-                        console.log('分享已取消');
-                    }
+                    try { await navigator.share(shareData); } catch (err) {}
                 } else {
                     try {
                         await navigator.clipboard.writeText(window.location.href);
                         alert('網址已複製！快去貼給朋友吧！');
-                    } catch (err) {
-                        alert('您的瀏覽器不支援自動分享，請手動複製網址。');
-                    }
+                    } catch (err) { alert('不支援自動分享'); }
                 }
             };
 
@@ -649,16 +699,16 @@
                 const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(blob);
-                link.download = `ETF_v30_${currentMonth.value}月.csv`;
+                link.download = `ETF_v33_${currentMonth.value}月.csv`;
                 link.click();
             };
 
             const backupDataJSON = () => {
-                const backup = { config: etfList.value, shares: sharesData.value, costs: costData.value, dps: dpsData.value, ver: 'v30' };
+                const backup = { config: etfList.value, shares: sharesData.value, costs: costData.value, dps: dpsData.value, ver: 'v33' };
                 const blob = new Blob([JSON.stringify(backup)], { type: "application/json" });
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(blob);
-                link.download = `ETF_Backup_v30.json`;
+                link.download = `ETF_Backup_v33.json`;
                 link.click();
             };
 
