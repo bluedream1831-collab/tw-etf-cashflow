@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ETF 現金流試算 (v28 品牌優化版)</title>
+    <title>ETF 現金流試算 (v29 說明優化版)</title>
     
     <!-- Vue CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
@@ -176,11 +176,11 @@
         <div class="container-fluid">
             <!-- 標題 + 功能按鈕 -->
             <div class="header-row">
-                <!-- 方案一：標題區塊整合導引 -->
+                <!-- 標題區塊整合導引 -->
                 <div class="d-flex align-items-center">
                     <i class="fas fa-coins text-success me-2"></i>
                     <span class="fw-bold text-dark fs-6 me-2">ETF 現金流</span>
-                    <!-- 顯眼但不干擾的部落格連結 -->
+                    <!-- 部落格連結徽章 -->
                     <a href="https://vocus.cc/salon/WUCJ" target="_blank" class="text-decoration-none">
                         <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-size: 10px;">
                             <i class="fas fa-rss me-1"></i>WUCJ 投資
@@ -391,11 +391,20 @@
                 </div>
                 <div class="modal-body small">
                     <ul class="ps-3 mb-0">
-                        <li class="mb-2 text-danger fw-bold">注意：請務必填寫「配發月 (入帳日)」，並非除息月。</li>
-                        <li class="mb-2"><strong>關於作者</strong>：更多投資心得請參考 <a href="https://vocus.cc/salon/WUCJ" target="_blank" class="fw-bold">我的部落格 (WUCJ)</a>。</li>
-                        <li class="mb-2"><strong>自訂清單</strong>：點擊「功能 > 新增 ETF」可加入自己的標的。</li>
+                        <li class="mb-3 text-danger">
+                            <strong>⚠️ 重要觀念：配發月 vs 除息月</strong><br>
+                            本系統採「現金流」觀點，請填寫<strong>「實際領到錢 (入帳)」</strong>的月份。<br>
+                            <span class="text-muted" style="font-size: 12px;">(例如：00878 在 2月除息，但 3月才發放現金，請將配息填在 3月)</span>
+                        </li>
+                        <li class="mb-2"><strong>新增與刪除</strong>：
+                            <ul class="mb-1">
+                                <li><i class="fas fa-plus-circle text-primary me-1"></i>點擊「功能 > 新增 ETF」加入自選。</li>
+                                <li><i class="fas fa-trash-alt text-danger me-1"></i>點擊代號旁的垃圾桶圖示，即可<strong>刪除</strong>該列。</li>
+                            </ul>
+                        </li>
                         <li class="mb-2"><strong>預設股數</strong>：系統預設所有 ETF 股數皆為 0 股。</li>
-                        <li class="mb-1"><strong>記憶功能</strong>：會自動記住您的股數與配息設定。</li>
+                        <li class="mb-2"><strong>自動記憶</strong>：系統會自動儲存您的股數與配息設定。</li>
+                        <li><strong>關於作者</strong>：更多心得請參考 <a href="https://vocus.cc/salon/WUCJ" target="_blank" class="fw-bold">我的部落格 (WUCJ)</a>。</li>
                     </ul>
                 </div>
             </div>
@@ -457,8 +466,8 @@
             for(let m=1; m<=12; m++) dpsData.value[m] = {};
 
             const loadData = () => {
-                // 1. 載入 ETF 清單
-                const savedConfig = localStorage.getItem('etf_config_v28');
+                // 1. 載入 ETF 清單 (升級至 v29)
+                const savedConfig = localStorage.getItem('etf_config_v29');
                 if (savedConfig) {
                     etfList.value = JSON.parse(savedConfig);
                 } else {
@@ -466,8 +475,8 @@
                     saveEtfConfig();
                 }
 
-                // 2. 載入股數
-                const savedShares = localStorage.getItem('etf_shares_v28');
+                // 2. 載入股數 (v29)
+                const savedShares = localStorage.getItem('etf_shares_v29');
                 if(savedShares) {
                     sharesData.value = JSON.parse(savedShares);
                 } else {
@@ -476,8 +485,8 @@
                     saveShares();
                 }
 
-                // 3. 載入配息
-                const savedDps = localStorage.getItem('etf_dps_v28');
+                // 3. 載入配息 (v29)
+                const savedDps = localStorage.getItem('etf_dps_v29');
                 if(savedDps) {
                     dpsData.value = JSON.parse(savedDps);
                 } else {
@@ -495,15 +504,15 @@
             };
 
             const saveEtfConfig = () => {
-                localStorage.setItem('etf_config_v28', JSON.stringify(etfList.value));
+                localStorage.setItem('etf_config_v29', JSON.stringify(etfList.value));
             };
 
             const saveShares = () => {
-                localStorage.setItem('etf_shares_v28', JSON.stringify(sharesData.value));
+                localStorage.setItem('etf_shares_v29', JSON.stringify(sharesData.value));
             };
 
             const saveDps = () => {
-                localStorage.setItem('etf_dps_v28', JSON.stringify(dpsData.value));
+                localStorage.setItem('etf_dps_v29', JSON.stringify(dpsData.value));
             };
 
             const addEtf = () => {
@@ -642,7 +651,7 @@
                     shares: sharesData.value,
                     dps: dpsData.value,
                     timestamp: new Date().toISOString(),
-                    version: 'v28'
+                    version: 'v29'
                 };
                 const jsonString = JSON.stringify(backup, null, 2);
                 const blob = new Blob([jsonString], { type: "application/json" });
