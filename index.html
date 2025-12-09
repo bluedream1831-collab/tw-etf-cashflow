@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ETF 現金流試算 (v29 自動存檔版)</title>
+    <title>ETF 現金流試算 (v30 自動月份版)</title>
     
     <!-- Vue 3 CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
@@ -164,7 +164,7 @@
                     <button class="btn btn-outline-dark btn-sm py-1 px-2 shadow-sm" @click.prevent="backupDataJSON" title="匯出備份">
                         <i class="fas fa-file-export"></i>
                     </button>
-                    <!-- 重新整理 (新增) -->
+                    <!-- 重新整理 -->
                     <button class="btn btn-outline-success btn-sm py-1 px-2 shadow-sm" @click="reloadPage" title="刷新頁面">
                         <i class="fas fa-sync-alt"></i>
                     </button>
@@ -346,9 +346,9 @@
                             <div id="helpOne" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion">
                                 <div class="accordion-body">
                                     <ul class="mb-0 ps-3">
-                                        <li class="mb-2"><strong>自動儲存</strong>：您輸入的任何數字都會即時存入手機，無須手動存檔，重新整理也不會消失。</li>
+                                        <li class="mb-2"><strong>自動進入當月</strong>：每次打開網頁或重新整理，系統會自動定位到真實日期的月份，方便您即時查看。</li>
+                                        <li class="mb-2"><strong>自動儲存</strong>：您輸入的數字會即時存檔，無須手動保存。</li>
                                         <li class="mb-2"><strong>重新整理</strong>：點擊上方 <i class="fas fa-sync-alt text-success"></i> 按鈕可刷新頁面。</li>
-                                        <li class="mb-2"><strong>輸入股數</strong>：輸入持有張數，系統會自動記憶。</li>
                                     </ul>
                                 </div>
                             </div>
@@ -391,11 +391,12 @@
 
     createApp({
         setup() {
-            // 記憶月份
-            const savedMonth = localStorage.getItem('etf_user_last_month');
-            const currentMonth = ref(savedMonth ? parseInt(savedMonth) : new Date().getMonth() + 1);
-            const isSaving = ref(false); // 儲存狀態提示
+            // v30 核心改動：每次載入都直接使用真實月份，不讀取上次歷史
+            const currentMonth = ref(new Date().getMonth() + 1);
+            
+            const isSaving = ref(false); 
 
+            // 雖然不讀取，但我們還是可以存一下，以防未來功能需要
             watch(currentMonth, (newVal) => {
                 localStorage.setItem('etf_user_last_month', newVal);
             });
@@ -431,15 +432,15 @@
             for(let m=1; m<=12; m++) dpsData.value[m] = {};
 
             const loadData = () => {
-                const savedConfig = localStorage.getItem('etf_config_v29');
+                const savedConfig = localStorage.getItem('etf_config_v30');
                 if (savedConfig) { etfList.value = JSON.parse(savedConfig); } 
                 else { etfList.value = JSON.parse(JSON.stringify(defaultEtfs)); saveEtfConfig(); }
 
-                const savedShares = localStorage.getItem('etf_shares_v29');
+                const savedShares = localStorage.getItem('etf_shares_v30');
                 if(savedShares) { sharesData.value = JSON.parse(savedShares); } 
                 else { initDefaultShares(); saveShares(); }
 
-                const savedDps = localStorage.getItem('etf_dps_v29');
+                const savedDps = localStorage.getItem('etf_dps_v30');
                 if(savedDps) { dpsData.value = JSON.parse(savedDps); } 
                 else { saveDps(); }
             };
@@ -450,15 +451,14 @@
                 sharesData.value = tempShares;
             };
 
-            // 儲存並顯示提示動畫
             const showSaveStatus = () => {
                 isSaving.value = true;
                 setTimeout(() => { isSaving.value = false; }, 1000);
             };
 
-            const saveEtfConfig = () => { localStorage.setItem('etf_config_v29', JSON.stringify(etfList.value)); showSaveStatus(); };
-            const saveShares = () => { localStorage.setItem('etf_shares_v29', JSON.stringify(sharesData.value)); showSaveStatus(); };
-            const saveDps = () => { localStorage.setItem('etf_dps_v29', JSON.stringify(dpsData.value)); showSaveStatus(); };
+            const saveEtfConfig = () => { localStorage.setItem('etf_config_v30', JSON.stringify(etfList.value)); showSaveStatus(); };
+            const saveShares = () => { localStorage.setItem('etf_shares_v30', JSON.stringify(sharesData.value)); showSaveStatus(); };
+            const saveDps = () => { localStorage.setItem('etf_dps_v30', JSON.stringify(dpsData.value)); showSaveStatus(); };
 
             const reloadPage = () => { window.location.reload(); };
 
@@ -569,7 +569,7 @@
             const printPage = () => { window.print(); };
 
             const backupDataJSON = () => {
-                const backup = { config: etfList.value, shares: sharesData.value, dps: dpsData.value, timestamp: new Date().toISOString(), version: 'v29' };
+                const backup = { config: etfList.value, shares: sharesData.value, dps: dpsData.value, timestamp: new Date().toISOString(), version: 'v30' };
                 const jsonString = JSON.stringify(backup, null, 2);
                 const blob = new Blob([jsonString], { type: "application/json" });
                 const link = document.createElement("a");
