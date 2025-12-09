@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ETF 現金流試算 (v29 說明優化版)</title>
+    <title>ETF 現金流試算 (v29 自動存檔版)</title>
     
-    <!-- Vue CDN -->
+    <!-- Vue 3 CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     
     <!-- Bootstrap 5 -->
@@ -14,7 +14,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* 防止原始碼外洩 */
         [v-cloak] { display: none !important; }
 
         :root {
@@ -39,124 +38,82 @@
         /* --- 頂部導航 --- */
         .top-bar {
             background: white; 
-            padding: 8px 5px; 
+            padding: 10px 12px; 
             margin-bottom: 0; 
             border-bottom: 1px solid #ddd;
             position: sticky; top: 0; z-index: 900;
         }
 
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 0 5px; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .tools-row { display: flex; gap: 5px; justify-content: space-between; align-items: center; }
 
-        /* 月份按鈕 */
-        .month-bar { display: flex; gap: 2px; justify-content: center; overflow-x: auto; }
-        .month-btn {
-            flex: 1;
-            min-width: 25px; height: 30px; 
-            border-radius: 4px;
-            font-weight: bold; border: 1px solid #eee;
-            background: #fff; color: #666; font-size: 12px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
+        /* 月份下拉選單 */
+        .month-select {
+            background-color: #f8f9fa; border: 1px solid #ced4da; color: var(--primary-color);
+            font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 6px; cursor: pointer; width: auto; min-width: 90px;
         }
-        .month-btn.active {
-            background-color: var(--primary-color); color: white; border-color: var(--primary-color);
-            box-shadow: 0 2px 4px rgba(25, 135, 84, 0.3);
+        .month-select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(25,135,84,0.2); }
+
+        /* 部落格按鈕 */
+        .btn-blog {
+            background: linear-gradient(45deg, #0d6efd, #0dcaf0); border: none; color: white; font-weight: bold; font-size: 12px;
+            padding: 4px 10px; border-radius: 20px; box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3); text-decoration: none;
+            display: inline-flex; align-items: center;
         }
+        .btn-blog:hover { color: white; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(13, 110, 253, 0.4); }
+
+        /* 儲存狀態提示 */
+        .save-status { font-size: 11px; color: #198754; font-weight: normal; margin-left: 5px; opacity: 0; transition: opacity 0.5s; }
+        .save-status.show { opacity: 1; }
 
         /* --- 表格樣式 --- */
         .custom-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; }
-
         .custom-table th {
-            background-color: #e9ecef; color: #495057;
-            padding: 6px 4px;
-            font-size: 13px; text-align: center;
-            border-bottom: 2px solid #ccc;
-            white-space: nowrap;
-            position: sticky; top: 0;
+            background-color: #e9ecef; color: #495057; padding: 6px 4px;
+            font-size: 13px; text-align: center; border-bottom: 2px solid #ccc;
+            white-space: nowrap; position: sticky; top: 0;
         }
-
-        .custom-table td {
-            padding: 6px 4px;
-            vertical-align: middle;
-            border-bottom: 1px solid #eee;
-            height: 48px;
-        }
-
-        /* 刪除按鈕 (垃圾桶) */
-        .delete-btn {
-            font-size: 11px; color: #dc3545; opacity: 0.3; cursor: pointer; margin-left: 6px; padding: 2px;
-        }
+        .custom-table td { padding: 6px 4px; vertical-align: middle; border-bottom: 1px solid #eee; height: 48px; }
+        .delete-btn { font-size: 11px; color: #dc3545; opacity: 0.3; cursor: pointer; margin-left: 6px; padding: 2px; }
         .delete-btn:hover { opacity: 1; transform: scale(1.1); }
-
-        /* 表格底部合計列 (Footer) */
-        .table-footer-row td {
-            background-color: #f1f3f5;
-            border-top: 2px solid #333;
-            font-weight: bold;
-            color: #333;
-        }
-
-        /* 黃底 */
+        .table-footer-row td { background-color: #f1f3f5; border-top: 2px solid #333; font-weight: bold; color: #333; }
         .highlight-row { background-color: var(--highlight-bg) !important; }
 
-        /* ETF 名稱區塊 */
         .etf-info-cell { text-align: left; padding-left: 8px !important; }
-        .etf-info-wrapper {
-            display: flex; flex-direction: column; justify-content: center; line-height: 1.2;
-        }
+        .etf-info-wrapper { display: flex; flex-direction: column; justify-content: center; line-height: 1.2; }
         .etf-code { font-weight: 800; font-size: 14px; color: #2c3e50; }
         .etf-name { font-size: 11px; color: #666; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px;}
 
-        /* 標籤 */
-        .badge-pill { 
-            display: inline-block; padding: 1px 4px; border-radius: 3px; 
-            font-size: 10px; line-height: 1; margin-left: 4px; vertical-align: text-top;
-        }
+        .badge-pill { display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 10px; line-height: 1; margin-left: 4px; vertical-align: text-top; }
         .badge-m { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; } 
         .badge-q { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
 
-        /* 輸入框顯眼化 */
         .input-enhanced {
-            width: 100%; 
-            text-align: right;
-            border: 1px solid var(--input-border);
-            border-radius: 4px;
-            padding: 4px 6px;
-            font-size: 14px; font-weight: 700; color: #333;
-            background-color: var(--input-bg);
-            transition: all 0.2s ease-in-out;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+            width: 100%; text-align: right; border: 1px solid var(--input-border); border-radius: 4px;
+            padding: 4px 6px; font-size: 14px; font-weight: 700; color: #333; background-color: var(--input-bg);
+            transition: all 0.2s ease-in-out; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
         }
-        .input-enhanced:focus {
-            background-color: #fff;
-            border-color: var(--primary-color);
-            outline: none; 
-            box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.25);
-        }
+        .input-enhanced:focus { background-color: #fff; border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.25); }
         
         .amount-cell { text-align: right; padding-right: 8px !important; }
         .amount-text { font-size: 15px; font-weight: 800; color: var(--primary-color); letter-spacing: 0.5px; }
 
-        /* --- 底部懸浮合計 --- */
         .footer-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            background: rgba(33, 37, 41, 0.98); 
-            color: #fff;
-            padding: 10px 15px;
-            z-index: 1000;
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 14px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+            background: rgba(33, 37, 41, 0.98); color: #fff; padding: 10px 15px;
+            z-index: 1000; display: flex; justify-content: space-between; align-items: center;
+            font-size: 14px; box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
             padding-bottom: env(safe-area-inset-bottom);
         }
         .total-amount { font-size: 18px; font-weight: bold; color: #76ff03; }
 
-        .print-only-header { display: none; }
+        .accordion-button { font-size: 14px; font-weight: bold; color: var(--primary-color); background-color: #f8f9fa; padding: 12px; }
+        .accordion-button:not(.collapsed) { color: #0f5132; background-color: #e9ecef; box-shadow: none; }
+        .accordion-body { font-size: 13.5px; line-height: 1.6; padding: 12px; color: #444; }
 
-        /* --- 列印專用樣式 --- */
+        .print-only-header { display: none; }
         @media print {
-            .no-print, .month-bar, .footer-bar, .top-bar { display: none !important; }
+            .no-print, .month-select, .footer-bar, .top-bar { display: none !important; }
             .print-only-header { display: block; text-align: center; margin-bottom: 20px; font-size: 20px; font-weight: bold;}
             .container-fluid { max-width: 100%; }
             .custom-table th, .custom-table td { border: 1px solid #000; }
@@ -174,51 +131,62 @@
     <!-- 頂部操作區 -->
     <div class="top-bar no-print">
         <div class="container-fluid">
-            <!-- 標題 + 功能按鈕 -->
+            <!-- 第一排：標題 + 儲存提示 + 部落格 -->
             <div class="header-row">
-                <!-- 標題區塊整合導引 -->
                 <div class="d-flex align-items-center">
                     <i class="fas fa-coins text-success me-2"></i>
-                    <span class="fw-bold text-dark fs-6 me-2">ETF 現金流</span>
-                    <!-- 部落格連結徽章 -->
-                    <a href="https://vocus.cc/salon/WUCJ" target="_blank" class="text-decoration-none">
-                        <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-size: 10px;">
-                            <i class="fas fa-rss me-1"></i>WUCJ 投資
-                        </span>
-                    </a>
+                    <span class="fw-bold text-dark fs-6">ETF 現金流</span>
+                    <!-- 自動儲存提示 -->
+                    <span class="save-status" :class="{ show: isSaving }">
+                        <i class="fas fa-check-circle"></i> 已存
+                    </span>
                 </div>
-                
-                <div class="btn-group">
-                    <button class="btn btn-warning btn-sm py-1 px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#summaryModal" style="font-size: 12px;">
-                        <i class="fas fa-chart-pie me-1"></i>總覽
-                    </button>
-                    <button class="btn btn-outline-secondary btn-sm py-1 px-3 ms-2 dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" style="font-size: 12px;">
-                        功能
-                    </button>
-                    <!-- 下拉選單 -->
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
-                        <li><a class="dropdown-item py-2 fw-bold text-primary" href="#" data-bs-toggle="modal" data-bs-target="#addEtfModal"><i class="fas fa-plus-circle me-2"></i>新增 ETF</a></li>
-                        <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="fas fa-book me-2"></i>操作說明</a></li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li><a class="dropdown-item py-2" href="#" @click.prevent="backupDataJSON"><i class="fas fa-file-export me-2"></i>匯出備份 (JSON)</a></li>
-                        <li><a class="dropdown-item py-2" href="#" @click.prevent="triggerImport"><i class="fas fa-file-import me-2"></i>匯入備份 (JSON)</a></li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li><a class="dropdown-item py-2" href="#" @click.prevent="exportCSV"><i class="fas fa-file-csv me-2"></i>匯出 Excel</a></li>
-                        <li><a class="dropdown-item py-2" href="#" @click.prevent="printPage"><i class="fas fa-print me-2"></i>列印 / PDF</a></li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li><a class="dropdown-item py-2 text-danger" href="#" @click.prevent="clearMonthDPS"><i class="fas fa-eraser me-2"></i>清除本月金額</a></li>
-                        <li><a class="dropdown-item py-2 text-danger" href="#" @click.prevent="resetToDefault"><i class="fas fa-undo me-2"></i>重置所有清單</a></li>
-                    </ul>
-                </div>
+                <a href="https://vocus.cc/user/@WUCJ" target="_blank" class="btn-blog">
+                    <i class="fas fa-pen-nib me-1"></i> 追蹤作者
+                </a>
             </div>
 
-            <!-- 月份按鈕 -->
-            <div class="month-bar mt-1">
-                <div v-for="m in 12" :key="m" 
-                     class="month-btn" 
-                     :class="{ active: currentMonth === m }"
-                     @click="currentMonth = m">
-                    {{ m }}
+            <!-- 第二排：功能列 -->
+            <div class="tools-row">
+                <!-- 月份選擇 -->
+                <div class="d-flex align-items-center">
+                    <select v-model="currentMonth" class="form-select month-select shadow-sm">
+                        <option v-for="m in 12" :key="m" :value="m">{{ m }} 月份</option>
+                    </select>
+                </div>
+
+                <!-- 按鈕群 -->
+                <div class="d-flex gap-1">
+                    <button class="btn btn-warning btn-sm py-1 px-2 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#summaryModal">
+                        <i class="fas fa-chart-pie me-1"></i>總覽
+                    </button>
+                    <!-- 匯出 -->
+                    <button class="btn btn-outline-dark btn-sm py-1 px-2 shadow-sm" @click.prevent="backupDataJSON" title="匯出備份">
+                        <i class="fas fa-file-export"></i>
+                    </button>
+                    <!-- 重新整理 (新增) -->
+                    <button class="btn btn-outline-success btn-sm py-1 px-2 shadow-sm" @click="reloadPage" title="刷新頁面">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    
+                    <!-- 更多選單 -->
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                            <li><a class="dropdown-item py-2" href="#" @click.prevent="triggerImport"><i class="fas fa-file-import me-2"></i>匯入還原</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li><a class="dropdown-item py-2 fw-bold text-primary" href="#" data-bs-toggle="modal" data-bs-target="#addEtfModal"><i class="fas fa-plus-circle me-2"></i>新增 ETF</a></li>
+                            <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="fas fa-question-circle me-2"></i>詳細說明</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li><a class="dropdown-item py-2" href="#" @click.prevent="exportCSV"><i class="fas fa-file-csv me-2"></i>匯出 Excel</a></li>
+                            <li><a class="dropdown-item py-2" href="#" @click.prevent="printPage"><i class="fas fa-print me-2"></i>列印 / PDF</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li><a class="dropdown-item py-2 text-danger" href="#" @click.prevent="clearMonthDPS"><i class="fas fa-eraser me-2"></i>清除本月配息</a></li>
+                            <li><a class="dropdown-item py-2 text-danger" href="#" @click.prevent="resetToDefault"><i class="fas fa-undo me-2"></i>重置所有資料</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -242,41 +210,27 @@
             </thead>
             <tbody>
                 <tr v-for="etf in filteredList" :key="etf.id" :class="{ 'highlight-row': isHighlight(etf) }">
-                    <!-- 代號與名稱 -->
                     <td class="etf-info-cell">
                         <div class="etf-info-wrapper">
                             <div>
                                 <span class="etf-code">{{ etf.id }}</span>
                                 <span v-if="etf.freq==='M'" class="badge-pill badge-m">月</span>
                                 <span v-else class="badge-pill badge-q">季</span>
-                                <!-- 刪除按鈕 -->
                                 <i class="fas fa-trash-alt delete-btn no-print" @click="removeEtf(etf.id)" title="刪除此列"></i>
                             </div>
                             <div class="etf-name">{{ etf.name }}</div>
                         </div>
                     </td>
-                    
-                    <!-- 股數輸入 -->
                     <td>
-                        <input type="number" class="input-enhanced" 
-                               v-model.number="sharesData[etf.id]" @input="saveShares" placeholder="0">
+                        <input type="number" class="input-enhanced" v-model.number="sharesData[etf.id]" @input="saveShares" placeholder="0">
                     </td>
-                    
-                    <!-- 配息輸入 -->
                     <td>
-                        <input type="number" step="0.001" class="input-enhanced" 
-                               v-model.number="getMonthDps(currentMonth)[etf.id]" @input="saveDps" placeholder="0">
+                        <input type="number" step="0.001" class="input-enhanced" v-model.number="getMonthDps(currentMonth)[etf.id]" @input="saveDps" placeholder="0">
                     </td>
-                    
-                    <!-- 金額 -->
                     <td class="amount-cell">
-                        <div class="amount-text">
-                            {{ calculateAmount(etf.id).toLocaleString() }}
-                        </div>
+                        <div class="amount-text">{{ calculateAmount(etf.id).toLocaleString() }}</div>
                     </td>
                 </tr>
-                
-                <!-- 無資料時顯示 -->
                 <tr v-if="filteredList.length === 0">
                     <td colspan="4" class="text-center text-muted py-5">
                         <i class="fas fa-mug-hot fa-2x mb-2 text-secondary opacity-50"></i><br>
@@ -284,7 +238,6 @@
                     </td>
                 </tr>
             </tbody>
-            <!-- 表格底部合計 -->
             <tfoot>
                 <tr class="table-footer-row">
                     <td colspan="3" class="text-end fw-bold">本月合計 Total</td>
@@ -296,15 +249,13 @@
         </table>
     </div>
 
-    <!-- 底部合計 (手機懸浮) -->
+    <!-- 底部合計 -->
     <div class="footer-bar no-print">
         <div class="d-flex align-items-center">
             <span class="badge bg-light text-dark me-2">{{ currentMonth }}月</span>
             <span>預估入帳</span>
         </div>
-        <div class="total-amount">
-            NT$ {{ totalAmount.toLocaleString() }}
-        </div>
+        <div class="total-amount">NT$ {{ totalAmount.toLocaleString() }}</div>
     </div>
 
     <!-- 年度總覽 Modal -->
@@ -322,8 +273,7 @@
                                 <tr><th>月份</th><th>金額</th></tr>
                             </thead>
                             <tbody>
-                                <tr v-for="item in yearlySummary" :key="item.month" 
-                                    :class="{'table-success fw-bold': item.month === currentMonth}">
+                                <tr v-for="item in yearlySummary" :key="item.month" :class="{'table-success fw-bold': item.month === currentMonth}">
                                     <td>{{ item.month }} 月</td>
                                     <td>{{ item.total.toLocaleString() }}</td>
                                 </tr>
@@ -381,31 +331,51 @@
         </div>
     </div>
 
-    <!-- 說明書 Modal -->
+    <!-- 詳細說明書 Modal -->
     <div class="modal fade" id="helpModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-primary bg-opacity-10 py-2">
-                    <h6 class="modal-title fw-bold text-primary">操作說明</h6>
+                    <h6 class="modal-title fw-bold text-primary"><i class="fas fa-book me-2"></i>使用說明</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body small">
-                    <ul class="ps-3 mb-0">
-                        <li class="mb-3 text-danger">
-                            <strong>⚠️ 重要觀念：配發月 vs 除息月</strong><br>
-                            本系統採「現金流」觀點，請填寫<strong>「實際領到錢 (入帳)」</strong>的月份。<br>
-                            <span class="text-muted" style="font-size: 12px;">(例如：00878 在 2月除息，但 3月才發放現金，請將配息填在 3月)</span>
-                        </li>
-                        <li class="mb-2"><strong>新增與刪除</strong>：
-                            <ul class="mb-1">
-                                <li><i class="fas fa-plus-circle text-primary me-1"></i>點擊「功能 > 新增 ETF」加入自選。</li>
-                                <li><i class="fas fa-trash-alt text-danger me-1"></i>點擊代號旁的垃圾桶圖示，即可<strong>刪除</strong>該列。</li>
-                            </ul>
-                        </li>
-                        <li class="mb-2"><strong>預設股數</strong>：系統預設所有 ETF 股數皆為 0 股。</li>
-                        <li class="mb-2"><strong>自動記憶</strong>：系統會自動儲存您的股數與配息設定。</li>
-                        <li><strong>關於作者</strong>：更多心得請參考 <a href="https://vocus.cc/salon/WUCJ" target="_blank" class="fw-bold">我的部落格 (WUCJ)</a>。</li>
-                    </ul>
+                <div class="modal-body p-0">
+                    <div class="accordion accordion-flush" id="helpAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#helpOne">基礎操作與自動儲存</button></h2>
+                            <div id="helpOne" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    <ul class="mb-0 ps-3">
+                                        <li class="mb-2"><strong>自動儲存</strong>：您輸入的任何數字都會即時存入手機，無須手動存檔，重新整理也不會消失。</li>
+                                        <li class="mb-2"><strong>重新整理</strong>：點擊上方 <i class="fas fa-sync-alt text-success"></i> 按鈕可刷新頁面。</li>
+                                        <li class="mb-2"><strong>輸入股數</strong>：輸入持有張數，系統會自動記憶。</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#helpTwo">月配 vs 季配顯示規則</button></h2>
+                            <div id="helpTwo" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    <ul class="mb-0 ps-3">
+                                        <li class="mb-2"><strong>月配息</strong>：每月顯示。</li>
+                                        <li class="mb-2"><strong>季配息</strong>：只在「入帳月份」顯示並亮黃燈。</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#helpThree">新增與刪除 ETF</button></h2>
+                            <div id="helpThree" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    <ul class="mb-0 ps-3">
+                                        <li class="mb-2"><strong>新增</strong>：選單 <i class="fas fa-bars"></i> > 新增 ETF。</li>
+                                        <li class="mb-2"><strong>刪除</strong>：點擊列表紅色的垃圾桶 <i class="fas fa-trash-alt text-danger"></i>。</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -424,6 +394,7 @@
             // 記憶月份
             const savedMonth = localStorage.getItem('etf_user_last_month');
             const currentMonth = ref(savedMonth ? parseInt(savedMonth) : new Date().getMonth() + 1);
+            const isSaving = ref(false); // 儲存狀態提示
 
             watch(currentMonth, (newVal) => {
                 localStorage.setItem('etf_user_last_month', newVal);
@@ -433,12 +404,8 @@
             const sharesData = ref({}); 
             const dpsData = ref({});
             const etfList = ref([]);
+            const newEtf = reactive({ id: '', name: '', freq: 'M', group: '1' });
 
-            const newEtf = reactive({
-                id: '', name: '', freq: 'M', group: '1'
-            });
-
-            // 內建預設清單
             const defaultEtfs = [
                 { id: '0056', name: '元大高股息', freq: 'Q', months: [2,5,8,11] },
                 { id: '00720B', name: '元大投債', freq: 'Q', months: [2,5,8,11] },
@@ -449,7 +416,6 @@
                 { id: '00915', name: '凱基高息', freq: 'Q', months: [1,4,7,10] },
                 { id: '00918', name: '大華優利高填息', freq: 'Q', months: [1,4,7,10] },
                 { id: '00919', name: '群益台灣精選', freq: 'Q', months: [1,4,7,10] },
-                
                 { id: '00900', name: '富邦特選', freq: 'M', months: [] },
                 { id: '00740B', name: '全球投債', freq: 'M', months: [] },
                 { id: '00929', name: '復華台灣科技', freq: 'M', months: [] },
@@ -462,85 +428,51 @@
                 { id: '00772B', name: '中信高評級', freq: 'M', months: [] },
             ];
 
-            // 初始化配息資料結構
             for(let m=1; m<=12; m++) dpsData.value[m] = {};
 
             const loadData = () => {
-                // 1. 載入 ETF 清單 (升級至 v29)
                 const savedConfig = localStorage.getItem('etf_config_v29');
-                if (savedConfig) {
-                    etfList.value = JSON.parse(savedConfig);
-                } else {
-                    etfList.value = JSON.parse(JSON.stringify(defaultEtfs)); 
-                    saveEtfConfig();
-                }
+                if (savedConfig) { etfList.value = JSON.parse(savedConfig); } 
+                else { etfList.value = JSON.parse(JSON.stringify(defaultEtfs)); saveEtfConfig(); }
 
-                // 2. 載入股數 (v29)
                 const savedShares = localStorage.getItem('etf_shares_v29');
-                if(savedShares) {
-                    sharesData.value = JSON.parse(savedShares);
-                } else {
-                    // 若無紀錄，執行預設邏輯
-                    initDefaultShares();
-                    saveShares();
-                }
+                if(savedShares) { sharesData.value = JSON.parse(savedShares); } 
+                else { initDefaultShares(); saveShares(); }
 
-                // 3. 載入配息 (v29)
                 const savedDps = localStorage.getItem('etf_dps_v29');
-                if(savedDps) {
-                    dpsData.value = JSON.parse(savedDps);
-                } else {
-                    saveDps();
-                }
+                if(savedDps) { dpsData.value = JSON.parse(savedDps); } 
+                else { saveDps(); }
             };
 
-            // 核心邏輯：預設股數 (全部 = 0)
             const initDefaultShares = () => {
                 const tempShares = {};
-                etfList.value.forEach(etf => {
-                    tempShares[etf.id] = 0; // 全部設為 0
-                });
+                etfList.value.forEach(etf => { tempShares[etf.id] = 0; });
                 sharesData.value = tempShares;
             };
 
-            const saveEtfConfig = () => {
-                localStorage.setItem('etf_config_v29', JSON.stringify(etfList.value));
+            // 儲存並顯示提示動畫
+            const showSaveStatus = () => {
+                isSaving.value = true;
+                setTimeout(() => { isSaving.value = false; }, 1000);
             };
 
-            const saveShares = () => {
-                localStorage.setItem('etf_shares_v29', JSON.stringify(sharesData.value));
-            };
+            const saveEtfConfig = () => { localStorage.setItem('etf_config_v29', JSON.stringify(etfList.value)); showSaveStatus(); };
+            const saveShares = () => { localStorage.setItem('etf_shares_v29', JSON.stringify(sharesData.value)); showSaveStatus(); };
+            const saveDps = () => { localStorage.setItem('etf_dps_v29', JSON.stringify(dpsData.value)); showSaveStatus(); };
 
-            const saveDps = () => {
-                localStorage.setItem('etf_dps_v29', JSON.stringify(dpsData.value));
-            };
+            const reloadPage = () => { window.location.reload(); };
 
             const addEtf = () => {
-                if(etfList.value.some(e => e.id === newEtf.id)) {
-                    alert('此代號已存在清單中');
-                    return;
-                }
-
+                if(etfList.value.some(e => e.id === newEtf.id)) { alert('此代號已存在清單中'); return; }
                 let months = [];
                 if(newEtf.freq === 'Q') {
                     if(newEtf.group === '1') months = [1,4,7,10];
                     if(newEtf.group === '2') months = [2,5,8,11];
                     if(newEtf.group === '3') months = [3,6,9,12];
                 }
-
-                etfList.value.push({
-                    id: newEtf.id,
-                    name: newEtf.name,
-                    freq: newEtf.freq,
-                    months: months
-                });
-
-                // 新增時：預設股數為 0
+                etfList.value.push({ id: newEtf.id, name: newEtf.name, freq: newEtf.freq, months: months });
                 sharesData.value[newEtf.id] = 0;
-
-                saveEtfConfig();
-                saveShares();
-
+                saveEtfConfig(); saveShares();
                 alert(`已新增 ${newEtf.name} (${newEtf.id})`);
                 newEtf.id = ''; newEtf.name = ''; newEtf.freq = 'M';
             };
@@ -555,9 +487,8 @@
             const resetToDefault = () => {
                 if(confirm("確定要重置所有清單嗎？\n\n1. 恢復內建清單\n2. 所有股數歸零")) {
                     etfList.value = JSON.parse(JSON.stringify(defaultEtfs));
-                    initDefaultShares(); // 強制執行預設股數 0 邏輯
-                    saveEtfConfig();
-                    saveShares();
+                    initDefaultShares();
+                    saveEtfConfig(); saveShares();
                     alert("已重置完成");
                 }
             };
@@ -612,16 +543,11 @@
                 return summary;
             });
 
-            const yearlyTotal = computed(() => {
-                return yearlySummary.value.reduce((sum, item) => sum + item.total, 0);
-            });
+            const yearlyTotal = computed(() => { return yearlySummary.value.reduce((sum, item) => sum + item.total, 0); });
 
-            // --- 功能區 ---
             const exportCSV = () => {
                 let csvContent = "\uFEFF"; 
-                csvContent += `${currentMonth.value}月份 ETF 領息試算表\n`;
-                csvContent += "代號,名稱,類型,持有股數,配息金額,入帳試算\n";
-
+                csvContent += `${currentMonth.value}月份 ETF 領息試算表\n代號,名稱,類型,持有股數,配息金額,入帳試算\n`;
                 filteredList.value.forEach(etf => {
                     const s = sharesData.value[etf.id] || 0;
                     const d = (dpsData.value[currentMonth.value]?.[etf.id]) || 0;
@@ -630,7 +556,6 @@
                     csvContent += `${etf.id},${etf.name},${type},${s},${d},${amt}\n`;
                 });
                 csvContent += `,,,Total,,${totalAmount.value}\n`;
-
                 const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
                 const link = document.createElement("a");
                 const url = URL.createObjectURL(blob);
@@ -641,18 +566,10 @@
                 document.body.removeChild(link);
             };
 
-            const printPage = () => {
-                window.print();
-            };
+            const printPage = () => { window.print(); };
 
             const backupDataJSON = () => {
-                const backup = {
-                    config: etfList.value,
-                    shares: sharesData.value,
-                    dps: dpsData.value,
-                    timestamp: new Date().toISOString(),
-                    version: 'v29'
-                };
+                const backup = { config: etfList.value, shares: sharesData.value, dps: dpsData.value, timestamp: new Date().toISOString(), version: 'v29' };
                 const jsonString = JSON.stringify(backup, null, 2);
                 const blob = new Blob([jsonString], { type: "application/json" });
                 const link = document.createElement("a");
@@ -664,9 +581,7 @@
                 document.body.removeChild(link);
             };
 
-            const triggerImport = () => {
-                fileInput.value.click();
-            };
+            const triggerImport = () => { fileInput.value.click(); };
 
             const handleFileImport = (event) => {
                 const file = event.target.files[0];
@@ -680,14 +595,10 @@
                                 if(data.config) etfList.value = data.config;
                                 sharesData.value = data.shares;
                                 dpsData.value = data.dps;
-                                saveEtfConfig();
-                                saveShares();
-                                saveDps();
+                                saveEtfConfig(); saveShares(); saveDps();
                                 alert("匯入成功！");
                             }
-                        } else {
-                            alert("格式不正確。");
-                        }
+                        } else { alert("格式不正確。"); }
                     } catch (err) { alert("無法解析檔案。"); }
                     event.target.value = '';
                 };
@@ -701,18 +612,10 @@
                 }
             };
 
-            onMounted(() => {
-                loadData();
-            });
+            onMounted(() => { loadData(); });
 
             return {
-                currentMonth, sharesData, dpsData, getMonthDps,
-                filteredList, isHighlight, saveShares, saveDps,
-                calculateAmount, totalAmount,
-                yearlySummary, yearlyTotal,
-                exportCSV, printPage, clearMonthDPS,
-                backupDataJSON, triggerImport, handleFileImport, fileInput,
-                newEtf, addEtf, removeEtf, resetToDefault
+                currentMonth, sharesData, dpsData, getMonthDps, filteredList, isHighlight, saveShares, saveDps, calculateAmount, totalAmount, yearlySummary, yearlyTotal, exportCSV, printPage, clearMonthDPS, backupDataJSON, triggerImport, handleFileImport, fileInput, newEtf, addEtf, removeEtf, resetToDefault, isSaving, reloadPage
             };
         }
     }).mount('#app');
